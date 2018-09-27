@@ -401,7 +401,9 @@ ExprResult Parser::ParseBraceInitializer() {
     if (!getLangOpts().CPlusPlus)
       Diag(LBraceLoc, diag::ext_gnu_empty_initializer);
     // Match the '}'.
-    return Actions.ActOnInitList(LBraceLoc, None, ConsumeBrace());
+    auto Init = Actions.ActOnInitList(LBraceLoc, None, ConsumeBrace());
+    Actions.MaybeMarkBuiltinConstantPCannotDelayEvaluation(Init.get());
+    return Init;
   }
 
   // Enter an appropriate expression evaluation context for an initializer list.
@@ -469,9 +471,12 @@ ExprResult Parser::ParseBraceInitializer() {
 
   bool closed = !T.consumeClose();
 
-  if (InitExprsOk && closed)
-    return Actions.ActOnInitList(LBraceLoc, InitExprs,
-                                 T.getCloseLocation());
+  if (InitExprsOk && closed) {
+    auto Init = Actions.ActOnInitList(LBraceLoc, InitExprs,
+                                       T.getCloseLocation());
+    Actions.MaybeMarkBuiltinConstantPCannotDelayEvaluation(Init.get());
+    return Init;
+  }
 
   return ExprError(); // an error occurred.
 }

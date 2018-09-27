@@ -8155,8 +8155,19 @@ bool IntExprEvaluator::VisitBuiltinCallExpr(const CallExpr *E,
     return Success(Val.countLeadingZeros(), E);
   }
 
-  case Builtin::BI__builtin_constant_p:
-    return Success(EvaluateBuiltinConstantP(Info.Ctx, E->getArg(0)), E);
+  case Builtin::BI__builtin_constant_p: {
+    auto Arg = E->getArg(0);
+    if (EvaluateBuiltinConstantP(Info.Ctx, Arg))
+      return Success(true, E);
+    Arg = Arg->IgnoreParenCasts();
+    if (isa<DeclRefExpr>(Arg->IgnoreParenCasts()) &&
+        !Arg->HasSideEffects(Info.Ctx) && E->getCanDelayEvaluation()) {
+      // Note: This diagnostic won't be shown to the user.
+      Info.FFDiag(E, diag::note_invalid_subexpr_in_const_expr);
+      return false;
+    }
+    return Success(false, E);
+  }
 
   case Builtin::BI__builtin_ctz:
   case Builtin::BI__builtin_ctzl:

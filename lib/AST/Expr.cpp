@@ -1213,6 +1213,7 @@ CallExpr::CallExpr(const ASTContext &C, StmtClass SC, Expr *fn,
   }
 
   CallExprBits.NumPreArgs = NumPreArgs;
+  CallExprBits.CanDelayEvaluation = true;
   RParenLoc = rparenloc;
 }
 

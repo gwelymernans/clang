@@ -122,6 +122,14 @@ int test16() {
          __builtin_constant_p(1, 2); // expected-error {{too many arguments}}
 }
 
+// __builtin_constant_p cannot resolve non-constants such as a file scoped array.
+int expr;
+char y[__builtin_constant_p(expr) ? -1 : 1]; // no warning, the builtin is false.
+
+// no warning, the builtin is false.
+struct foo { int a; };
+struct foo x = (struct foo) { __builtin_constant_p(42) ? 37 : 927 };
+
 const int test17_n = 0;
 const char test17_c[] = {1, 2, 3, 0};
 const char test17_d[] = {1, 2, 3, 4};
@@ -168,14 +176,17 @@ void test17() {
   // a builtin.
   ASSERT(OPT("abc"));
   ASSERT(!OPT("abcd"));
+
   // In these cases, the strlen is non-constant, but the __builtin_constant_p
-  // is 0: the array size is not an ICE but is foldable.
-  ASSERT(!OPT(test17_c));        // expected-warning {{folded}}
+  // is 0: the array size is not an ICE.
+  ASSERT(!OPT(test17_c));        // no warning expected
+  ASSERT(!OPT((char*)test17_c)); // no warning expected
+  ASSERT(!OPT(test17_d));        // no warning expected
+  ASSERT(!OPT((char*)test17_d)); // no warning expected
+
+  // These are foldable.
   ASSERT(!OPT(&test17_c[0]));    // expected-warning {{folded}}
-  ASSERT(!OPT((char*)test17_c)); // expected-warning {{folded}}
-  ASSERT(!OPT(test17_d));        // expected-warning {{folded}}
   ASSERT(!OPT(&test17_d[0]));    // expected-warning {{folded}}
-  ASSERT(!OPT((char*)test17_d)); // expected-warning {{folded}}
 
 #undef OPT
 #undef T
@@ -286,4 +297,23 @@ void test23() {
   char buf[10];
   memcpy(buf, src, 11); // expected-warning{{'memcpy' will always overflow; destination buffer has size 10, but size argument is 11}}
   my_memcpy(buf, src, 11); // expected-warning{{'__builtin___memcpy_chk' will always overflow; destination buffer has size 10, but size argument is 11}}
+}
+
+size_t test24(int a) {
+  char x[__builtin_constant_p(a) ? -1 : 1]; // no warning expected
+  return strlen(x);
+}
+
+__attribute__((always_inline))
+size_t test25(int a) {
+  char x[__builtin_constant_p(a) ? 1 : -1]; // no warning expected
+  return strlen(x);
+}
+
+size_t test26() {
+  return test25(2);
+}
+
+void f(int n) {
+  enum E { a = __builtin_constant_p(n) }; // ok, a == 0, not an error because a's value is non-constant
 }

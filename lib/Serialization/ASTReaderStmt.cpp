@@ -679,6 +679,7 @@ void ASTStmtReader::VisitOMPArraySectionExpr(OMPArraySectionExpr *E) {
 void ASTStmtReader::VisitCallExpr(CallExpr *E) {
   VisitExpr(E);
   E->setNumArgs(Record.getContext(), Record.readInt());
+  E->setCanDelayEvaluation(Record.readInt());
   E->setRParenLoc(ReadSourceLocation());
   E->setCallee(Record.readSubExpr());
   for (unsigned I = 0, N = E->getNumArgs(); I != N; ++I)

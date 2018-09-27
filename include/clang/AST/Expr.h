@@ -2413,6 +2413,11 @@ public:
   /// evaluate side-effects within its arguments.
   bool isUnevaluatedBuiltinCall(const ASTContext &Ctx) const;
 
+  // Used by __builtin_constant_p() to indicate that its evaluation can be
+  // delayed until after inlining.
+  void setCanDelayEvaluation(bool V) { CallExprBits.CanDelayEvaluation = V; }
+  bool getCanDelayEvaluation() const { return CallExprBits.CanDelayEvaluation; }
+
   /// getCallReturnType - Get the return type of the call expr. This is not
   /// always the type of the expr itself, if the return type is a reference
   /// type.

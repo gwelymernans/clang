@@ -213,6 +213,7 @@ protected:
     unsigned : NumExprBits;
 
     unsigned NumPreArgs : 1;
+    unsigned CanDelayEvaluation : 1;
   };
 
   class ExprWithCleanupsBitfields {

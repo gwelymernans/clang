@@ -15585,6 +15585,49 @@ void Sema::MarkDeclarationsReferencedInExpr(Expr *E,
   EvaluatedExprMarker(*this, SkipLocalVariables).Visit(E);
 }
 
+namespace {
+  // Helper class that marks  all calls to __builtin_constant_p that cannot be
+  // evaluated after inlining.
+  //
+  // GCC honors __builtin_constant_p() after inlining. Clang performs inlining
+  // too late to do that in the front-end. Therefore, clang converts bcp calls
+  // that can't be evaluated to a constant to an intrinsic so that the
+  // middle-end can determine whether or not it's constant after inlining. But
+  // this won't work for initializer lists and other constructs. For those, we
+  // need to be conservative in our analysis. So if we cannot determine that a
+  // value is constant before LLVM IR generation, then we resolve the bcp call
+  // to "false".
+  struct BuiltinConstantPCannotDelayEvaluation :
+    public EvaluatedExprVisitor<BuiltinConstantPCannotDelayEvaluation> {
+      typedef EvaluatedExprVisitor<BuiltinConstantPCannotDelayEvaluation>
+          Inherited;
+
+      BuiltinConstantPCannotDelayEvaluation(Sema &S)
+          : Inherited(S.Context) { }
+
+      void VisitCallExpr(CallExpr *E) {
+        auto DC = E->getDirectCallee();
+        if (!DC || DC->getBuiltinID() != Builtin::BI__builtin_constant_p)
+          return;
+        E->setCanDelayEvaluation(false);
+      }
+
+      void VisitInitListExpr(InitListExpr *E) {
+        for (auto Elem : *E)
+          Visit(Elem);
+      }
+  };
+}
+
+// Mark all calls to __builtin_constant_p that cannot have their evaluation
+// delayed. I.e., we won't generate an llvm.is.constant() intrinsic if the front
+// end is unable to ensure the argument is constant. E.g., when a
+// __builtin_constant_p() is used in an InitListExpr or subscript of a global
+// VarDecl.
+void Sema::MaybeMarkBuiltinConstantPCannotDelayEvaluation(Expr *E) {
+  BuiltinConstantPCannotDelayEvaluation(*this).Visit(E);
+}
+
 /// Emit a diagnostic that describes an effect on the run-time behavior
 /// of the program being compiled.
 ///

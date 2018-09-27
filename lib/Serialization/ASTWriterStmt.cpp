@@ -590,6 +590,7 @@ void ASTStmtWriter::VisitOMPArraySectionExpr(OMPArraySectionExpr *E) {
 void ASTStmtWriter::VisitCallExpr(CallExpr *E) {
   VisitExpr(E);
   Record.push_back(E->getNumArgs());
+  Record.push_back(E->getCanDelayEvaluation());
   Record.AddSourceLocation(E->getRParenLoc());
   Record.AddStmt(E->getCallee());
   for (CallExpr::arg_iterator Arg = E->arg_begin(), ArgEnd = E->arg_end();

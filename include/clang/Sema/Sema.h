@@ -4098,6 +4098,7 @@ public:
   void MarkDeclarationsReferencedInType(SourceLocation Loc, QualType T);
   void MarkDeclarationsReferencedInExpr(Expr *E,
                                         bool SkipLocalVariables = false);
+  void MaybeMarkBuiltinConstantPCannotDelayEvaluation(Expr *E);
 
   /// Try to recover by turning the given expression into a
   /// call.  Returns true if recovery was attempted or an error was

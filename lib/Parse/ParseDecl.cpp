@@ -4517,6 +4517,9 @@ void Parser::ParseEnumBody(SourceLocation StartLoc, Decl *EnumDecl) {
       AssignedVal = ParseConstantExpression();
       if (AssignedVal.isInvalid())
         SkipUntil(tok::comma, tok::r_brace, StopBeforeMatch);
+      else
+        Actions.MaybeMarkBuiltinConstantPCannotDelayEvaluation(
+            AssignedVal.get());
     }
 
     // Install the enumerator constant into EnumDecl.
@@ -6643,6 +6646,8 @@ void Parser::ParseBracketDeclarator(Declarator &D) {
   T.consumeClose();
 
   MaybeParseCXX11Attributes(DS.getAttributes());
+  if (NumElements.get() && !Actions.CurContext->isFunctionOrMethod())
+    Actions.MaybeMarkBuiltinConstantPCannotDelayEvaluation(NumElements.get());
 
   // Remember that we parsed a array type, and remember its features.
   D.AddTypeInfo(

@@ -1768,6 +1768,12 @@ RValue CodeGenFunction::EmitBuiltinExpr(const FunctionDecl *FD,
   case Builtin::BI__builtin_rotateright64:
     return emitRotate(E, true);
 
+  case Builtin::BI__builtin_constant_p:
+    if (CGM.getCodeGenOpts().OptimizationLevel == 0 ||
+        hasAggregateEvaluationKind(E->getArg(0)->getType()))
+      return RValue::get(ConstantInt::get(Int32Ty, 0));
+    return RValue::get(emitUnaryBuiltin(*this, E, Intrinsic::is_constant));
+
   case Builtin::BI__builtin_object_size: {
     unsigned Type =
         E->getArg(1)->EvaluateKnownConstInt(getContext()).getZExtValue();
